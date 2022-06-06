@@ -48,7 +48,9 @@ namespace ShareSuite
             On.RoR2.HealthComponent.TakeDamage += RollOfPenniesDamageHook;
 
             if (ShareSuite.MoneyIsShared.Value && GeneralHooks.IsMultiplayer())
+            {
                 IL.EntityStates.GoldGat.GoldGatFire.FireBullet += RemoveGoldGatMoneyLine;
+            }
         }
 
         private static void ShareTomeMoney(On.RoR2.MoneyPickup.orig_OnTriggerStay orig, MoneyPickup self,
@@ -74,13 +76,19 @@ namespace ShareSuite
 
             orig(self, other);
 
-            if (self.GetFieldValue<bool>("alive")) return;
+            if (self.GetFieldValue<bool>("alive"))
+            {
+                return;
+            }
 
             // Collect reward from tome and put it into shared pool
             SharedMoneyValue += amount;
 
-            if (!ShareSuite.MoneyScalarEnabled.Value
-                || !NetworkServer.active) return;
+            if (!ShareSuite.MoneyScalarEnabled.Value || !NetworkServer.active)
+            {
+                return;
+            }
+
             AddToSharedMoneyValue(amount);
 
             #endregion
@@ -117,7 +125,11 @@ namespace ShareSuite
                 {
                     case CostTypeIndex.Money:
                     {
-                        if (self.cost > SharedMoneyValue) return;
+                        if (self.cost > SharedMoneyValue)
+                        {
+                            return;
+                        }
+
                         // Remove money from shared money pool
                         orig(self, activator);
                         SharedMoneyValue -= self.cost;
@@ -144,7 +156,10 @@ namespace ShareSuite
                         var amount = (uint) (teamMaxHealth * purchaseInteraction.cost / 100.0 *
                                              shrineBloodBehavior.goldToPaidHpRatio);
 
-                        if (ShareSuite.MoneyScalarEnabled.Value) amount = (uint)(amount * ShareSuite.MoneyScalar.Value);
+                        if (ShareSuite.MoneyScalarEnabled.Value)
+                        {
+                            amount = (uint)(amount * ShareSuite.MoneyScalar.Value);
+                        }
 
                         SharedMoneyValue += (int) amount;
                         return;
@@ -164,7 +179,7 @@ namespace ShareSuite
             {
                 orig(self);
                 return;
-            } 
+            }
 
             var players = PlayerCharacterMasterController.instances.Count;
             foreach (var player in PlayerCharacterMasterController.instances)
@@ -181,16 +196,21 @@ namespace ShareSuite
             BarrelInteraction self, Interactor activator)
         {
             orig(self, activator);
-            
-            if (!GeneralHooks.IsMultiplayer()) return;
+
+            if (!GeneralHooks.IsMultiplayer())
+            {
+                return;
+            }
 
             #region Sharedmoney
 
             // Collect reward from barrel and put it into shared pool
             SharedMoneyValue += self.goldReward;
 
-            if (!ShareSuite.MoneyScalarEnabled.Value
-                || !NetworkServer.active) return;
+            if (!ShareSuite.MoneyScalarEnabled.Value || !NetworkServer.active)
+            {
+                return;
+            }
 
             AddToSharedMoneyValue(self.goldReward);
 
@@ -201,16 +221,21 @@ namespace ShareSuite
             DamageReport damageReport)
         {
             orig(self, damageReport);
-            
-            if (!GeneralHooks.IsMultiplayer()) return;
+
+            if (!GeneralHooks.IsMultiplayer())
+            {
+                return;
+            }
 
             #region Sharedmoney
 
             // Collect reward from kill and put it into shared pool
             SharedMoneyValue += (int) self.goldReward;
 
-            if (!ShareSuite.MoneyScalarEnabled.Value
-                || !NetworkServer.active) return;
+            if (!ShareSuite.MoneyScalarEnabled.Value || !NetworkServer.active)
+            {
+                return;
+            }
 
             AddToSharedMoneyValue(self.goldReward);
 
@@ -223,10 +248,10 @@ namespace ShareSuite
             SetTeleporterActive(false);
 
             // This should run on every map, as it is required to fix shared money.
-            // Reset shared money value to the default (0) at the start of each round
+            // Reset shared money value to the default (15) at the start of each round
             if (ShareSuite.MoneyIsShared.Value && GeneralHooks.IsMultiplayer())
             {
-                MoneySharingHooks.SharedMoneyValue = 15;
+                SharedMoneyValue = 15;
             }
 
             orig(self);
@@ -283,7 +308,11 @@ namespace ShareSuite
         private static void ToggleGoldGat(bool wasMultiplayer)
         {
             var isMultiplayer = GeneralHooks.IsMultiplayer();
-            if (wasMultiplayer == isMultiplayer) return;
+            if (wasMultiplayer == isMultiplayer)
+            {
+                return;
+            }
+
             if (ShareSuite.MoneyIsShared.Value && isMultiplayer)
             {
                 IL.EntityStates.GoldGat.GoldGatFire.FireBullet += RemoveGoldGatMoneyLine;
@@ -303,9 +332,9 @@ namespace ShareSuite
                 return;
             }
 
-            if (!ShareSuite.MoneyIsShared.Value || !GeneralHooks.IsMultiplayer()
-                || !(bool) self.body
-                || !(bool) self.body.inventory
+            if (!ShareSuite.MoneyIsShared.Value ||
+                !GeneralHooks.IsMultiplayer() ||
+                !(bool) self.body?.inventory
             )
             {
                 orig(self, info);
@@ -316,9 +345,8 @@ namespace ShareSuite
 
             // The idea here is that we track amount of money pre and post function evaluation.
             // We can subsequently apply the difference to the shared pool.
-            var body = self.body;
-
-            var preDamageMoney = self.body.master.money;
+            var body = self.body!;
+            var preDamageMoney = body.master.money;
 
             orig(self, info);
 
@@ -327,18 +355,29 @@ namespace ShareSuite
                 return;
             }
 
-            var postDamageMoney = self.body.master.money;
+            var postDamageMoney = body.master.money;
 
             // Ignore all of this if we do not actually have the item
-            if (body.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHit")) <= 0) return;
+            if (body.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHit")) <= 0)
+            {
+                return;
+            }
 
             // Apply the calculation to the shared money pool
-            SharedMoneyValue += (int) postDamageMoney - (int) preDamageMoney;
+            var difference = (int) postDamageMoney - (int) preDamageMoney;
+
+            SharedMoneyValue += difference;
+
+            Debug.Log($"ShareSuite :: BrittleCrownDamageHook :: {difference}");
 
             // Add impact effect
             foreach (var player in PlayerCharacterMasterController.instances)
             {
-                if (!(bool) player.master.GetBody() || player.master.GetBody() == body) continue;
+                if (!(bool) player.master.GetBody() || player.master.GetBody() == body)
+                {
+                    continue;
+                }
+
                 EffectManager.SimpleImpactEffect(Resources.Load<GameObject>(
                         "Prefabs/Effects/ImpactEffects/CoinImpact"),
                     player.master.GetBody().corePosition, Vector3.up, true);
@@ -352,29 +391,27 @@ namespace ShareSuite
             HealthComponent self,
             DamageInfo info)
         {
-            if (!ShareSuite.MoneyIsShared.Value ||
-                !GeneralHooks.IsMultiplayer() ||
-                !(bool) self.body ||
-                !(bool) self.body.inventory
-               )
-            {
-                orig(self, info);
-                return;
-            }
-
             orig(self, info);
 
-            if (!self.alive)
+            if (!NetworkServer.active ||
+                !ShareSuite.MoneyIsShared.Value ||
+                !GeneralHooks.IsMultiplayer() ||
+                !self.alive ||
+                !(bool) self.body?.inventory
+               )
             {
                 return;
             }
 
             #region Sharedmoney
 
-            var itemCount = self.body.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHurt"));
+            var itemCount = self.body!.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHurt"));
 
             // Ignore all of this if we do not actually have the item
-            if (itemCount <= 0) return;
+            if (itemCount <= 0)
+            {
+                return;
+            }
 
             CharacterBody attacker = null;
             if (info.attacker)
@@ -382,15 +419,26 @@ namespace ShareSuite
                 attacker = info.attacker.GetComponent<CharacterBody>();
             }
 
-            if (attacker == null || attacker == self.body) return;
+            if (attacker == null || attacker == self.body)
+            {
+                return;
+            }
 
             // Apply the calculation to the shared money pool
-            SharedMoneyValue += Mathf.FloorToInt(itemCount * 3 * Run.instance.difficultyCoefficient);
+            var gains = Mathf.FloorToInt(itemCount * 3 * Run.instance.difficultyCoefficient);
+
+            SharedMoneyValue += gains;
+
+            Debug.Log($"ShareSuite :: RollOfPenniesDamageHook :: {gains}");
 
             // Add impact effect
             foreach (var player in PlayerCharacterMasterController.instances)
             {
-                if (!(bool) player.master.GetBody() || player.master.GetBody() == self.body) continue;
+                if (!(bool) player.master.GetBody() || player.master.GetBody() == self.body)
+                {
+                    continue;
+                }
+
                 EffectManager.SimpleImpactEffect(Resources.Load<GameObject>(
                         "Prefabs/Effects/ImpactEffects/CoinImpact"),
                     player.master.GetBody().corePosition, Vector3.up, true);
@@ -402,10 +450,9 @@ namespace ShareSuite
         private static void BrittleCrownOnHitHook(On.RoR2.GlobalEventManager.orig_OnHitEnemy orig,
             GlobalEventManager self, DamageInfo info, GameObject victim)
         {
-            if (!ShareSuite.MoneyIsShared.Value || !GeneralHooks.IsMultiplayer()
-                || !(bool) info.attacker
-                || !(bool) info.attacker.GetComponent<CharacterBody>()
-                || !(bool) info.attacker.GetComponent<CharacterBody>().master
+            if (!ShareSuite.MoneyIsShared.Value ||
+                !GeneralHooks.IsMultiplayer()  ||
+                !(bool) info.attacker?.GetComponent<CharacterBody>()?.master
             )
             {
                 orig(self, info, victim);
@@ -416,7 +463,7 @@ namespace ShareSuite
 
             // The idea here is that we track amount of money pre and post function evaluation.
             // We can subsequently apply the difference to the shared pool.
-            var body = info.attacker.GetComponent<CharacterBody>();
+            var body = info.attacker!.GetComponent<CharacterBody>();
 
             var preDamageMoney = body.master.money;
 
@@ -425,10 +472,16 @@ namespace ShareSuite
             var postDamageMoney = body.master.money;
 
             // Ignore all of this if we do not actually have the item
-            if (!body.inventory || body.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHit")) <= 0) return;
+            if (!body.inventory || body.inventory.GetItemCount(ItemCatalog.FindItemIndex("GoldOnHit")) <= 0)
+            {
+                return;
+            }
 
             // Apply the calculation to the shared money pool
-            SharedMoneyValue += (int) postDamageMoney - (int) preDamageMoney;
+            var difference = (int) postDamageMoney - (int) preDamageMoney;
+            SharedMoneyValue += difference;
+
+            Debug.Log($"ShareSuite :: BrittleCrownOnHitHook :: {difference}");
 
             #endregion
         }
