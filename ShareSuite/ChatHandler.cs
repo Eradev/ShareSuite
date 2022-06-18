@@ -66,7 +66,14 @@ namespace ShareSuite
         public static void RemoveDefaultPickupMessage(On.RoR2.GenericPickupController.orig_SendPickupMessage orig,
             CharacterMaster master, PickupIndex pickupIndex)
         {
-            if (!ShareSuite.RichMessagesEnabled.Value) orig(master, pickupIndex);
+            if (!ShareSuite.RichMessagesEnabled.Value)
+            {
+                orig(master, pickupIndex);
+            }
+            else
+            {
+                ItemSharingHooks.HandleRichMessageUnlockAndNotification(master, pickupIndex);
+            }
         }
 
         public static void SendRichPickupMessage(CharacterMaster player, PickupDef pickupDef)

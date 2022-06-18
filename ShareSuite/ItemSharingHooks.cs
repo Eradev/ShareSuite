@@ -172,7 +172,7 @@ namespace ShareSuite
                             continue;
                         }
 
-                        NetworkHandler.SendItemPickupMessage(player.playerCharacterMasterController.networkUser.connectionToClient.connectionId, item.pickupIndex);
+                        // NetworkHandler.SendItemPickupMessage(player.playerCharacterMasterController.networkUser.connectionToClient.connectionId, item.pickupIndex);
 
                         continue;
                     }
@@ -520,14 +520,14 @@ namespace ShareSuite
 
             if (connectionId != null)
             {
-                NetworkHandler.SendItemPickupMessage(connectionId.Value, pickupDef.pickupIndex);
+                // NetworkHandler.SendItemPickupMessage(connectionId.Value, pickupDef.pickupIndex);
             }
         }
 
         public static void HandleRichMessageUnlockAndNotification(CharacterMaster characterMaster, PickupIndex pickupIndex)
         {
-            // No need if rich messages are disabled
-            if (!ShareSuite.RichMessagesEnabled.Value || !characterMaster.isLocalPlayer)
+            if (!ShareSuite.RichMessagesEnabled.Value ||
+                !characterMaster.isLocalPlayer && !characterMaster.isServer)
             {
                 return;
             }
