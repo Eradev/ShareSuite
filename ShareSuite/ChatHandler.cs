@@ -83,6 +83,10 @@ namespace ShareSuite
             {
                 orig(master, pickupIndex);
             }
+            else
+            {
+                ItemSharingHooks.HandleRichMessageUnlockAndNotification(master, pickupIndex);
+            }
         }
 
         public static void SendRichPickupMessage(CharacterMaster player, PickupDef pickupDef)
