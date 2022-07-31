@@ -31,8 +31,12 @@ namespace ShareSuite.Networking
 
             if (localPlayer == null || !itemPickupMessage.PickupIndex.isValid)
             {
+                Debug.Log("ShareSuite :: ItemPickupHandler :: Received message but not found local player, or pickup index is invalid.");
+
                 return;
             }
+
+            Debug.Log($"ShareSuite :: ItemPickupHandler :: Local player is {localPlayer.master.playerCharacterMasterController.GetDisplayName()}");
 
             ItemSharingHooks.HandleRichMessageUnlockAndNotification(localPlayer.master, itemPickupMessage.PickupIndex);
         }
